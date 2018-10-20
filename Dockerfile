@@ -257,7 +257,7 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     #curl iconv session
     #docker-php-ext-install pdo_mysql pdo_sqlite mysqli mcrypt gd exif intl xsl json soap dom zip opcache && \
     docker-php-ext-install iconv pdo_mysql pdo_sqlite mysqli gd exif intl xsl json soap dom zip opcache && \
-    docker-php-ext-install fileinfo ctype bcmath opcache posix simplexml tokenizer && \
+    docker-php-ext-install fileinfo ctype bcmath opcache posix simplexml tokenizer pcntl && \
     #php7.2부터 mcrypt 제거되어, pecl로 설치해야함
     pecl install mcrypt-1.0.1 && \
     pecl install redis && \
