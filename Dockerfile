@@ -1,6 +1,12 @@
 FROM php:7.2.10-fpm-alpine
 
-LABEL maintainer="Ric Harvey <ric@ngd.io>"
+LABEL maintainer="Eric Hakim <cobays@gmail.com>"
+
+ENV TZ Asia/Seoul
+ENV ECHO_VERSION 0.61
+ENV GEOIP_VERSION 1.6.11
+ENV PHALCON_VERSION 3.4.1
+ENV PHP_CONF_DIR /usr/local/etc/php/conf.d
 
 ENV php_conf /usr/local/etc/php-fpm.conf
 ENV fpm_conf /usr/local/etc/php-fpm.d/www.conf
@@ -12,11 +18,48 @@ ENV DEVEL_KIT_MODULE_VERSION 0.3.0
 ENV LUAJIT_LIB=/usr/lib
 ENV LUAJIT_INC=/usr/include/luajit-2.1
 
+# language 정적모듈컴파일방법: --add-module=<경로명>
+# language 동적모듈컴파일방법: --add-dynamic-module=<경로명>
+# https://www.nginx.com/resources/wiki/extending/converting/#compiling-a-dynamic-module
+# https://www.nginx.com/resources/wiki/modules/accept_language/#accept-language-installation
+# https://www.nginx.com/blog/compiling-dynamic-modules-nginx-plus/
+# 정적모듈컴파일방식(옛날 config파일포맷임): http://www.nginxguts.com/2011/01/plugs/
+# wget ssl지원: https://asciinema.org/a/101395
+# CONFiG에 지정할 디렉토리 경로명: /tmp/nginx_accept_language_module-master
+# echo-nginx-module-0.61
+RUN set -x \
+
+
 # resolves #166
 ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
 RUN apk add --no-cache --repository http://dl-3.alpinelinux.org/alpine/edge/testing gnu-libiconv
 
 RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
+  && echo "==================================================" \
+  && echo "Installing timezone (tzdata)" \
+  && echo "==================================================" \
+  && apk add --no-cache tzdata \
+  && echo "==================================================" \
+  && echo "Downloading echo-nginx-module" \
+  && echo "==================================================" \
+  && wget https://github.com/openresty/echo-nginx-module/archive/v${ECHO_VERSION}.tar.gz \
+    -O /tmp/echo-nginx-module.tar.gz \
+  && cd /tmp && tar -xvzf echo-nginx-module.tar.gz \
+  && mv echo-nginx-module-${ECHO_VERSION} echo-nginx-module \
+  && echo "==================================================" \
+  && echo "Downloading ngx_cache_purge" \
+  && echo "==================================================" \
+  && wget https://github.com/FRiCKLE/ngx_cache_purge/archive/2.3.tar.gz -O /tmp/ngx_cache_purge.tar.gz \
+  && cd /tmp && tar -xvzf ngx_cache_purge.tar.gz && mv ngx_cache_purge-* ngx_cache_purge \
+  && echo "==================================================" \
+  && echo "Downloading GeoIP database" \
+  && echo "==================================================" \
+  && mkdir /usr/share/GeoIP && cd /tmp \
+  && wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz \
+  && gunzip GeoIP.dat.gz \
+  && wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz \
+  && gunzip GeoLiteCity.dat.gz \
+  && mv GeoIP.dat GeoLiteCity.dat /usr/share/GeoIP/ \
   && CONFIG="\
     --prefix=/etc/nginx \
     --sbin-path=/usr/sbin/nginx \
@@ -64,9 +107,11 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     --with-http_v2_module \
     --add-module=/usr/src/ngx_devel_kit-$DEVEL_KIT_MODULE_VERSION \
     --add-module=/usr/src/lua-nginx-module-$LUA_MODULE_VERSION \
+	--add-module=/tmp/echo-nginx-module \
+	--add-module=/tmp/ngx_cache_purge \
   " \
   && addgroup -S nginx \
-  && adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \ 
+  && adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
   && apk add --no-cache --virtual .build-deps \
     autoconf \
     gcc \
@@ -105,7 +150,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && tar -zxC /usr/src -f nginx.tar.gz \
   && tar -zxC /usr/src -f ndk.tar.gz \
   && tar -zxC /usr/src -f lua.tar.gz \
-  && rm nginx.tar.gz ndk.tar.gz lua.tar.gz \ 
+  && rm nginx.tar.gz ndk.tar.gz lua.tar.gz \
   && cd /usr/src/nginx-$NGINX_VERSION \
   && ./configure $CONFIG --with-debug \
   && make -j$(getconf _NPROCESSORS_ONLN) \
@@ -165,6 +210,7 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     openssh-client \
     wget \
     supervisor \
+    dcron \
     curl \
     libcurl \
     git \
@@ -197,6 +243,17 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     #curl iconv session
     #docker-php-ext-install pdo_mysql pdo_sqlite mysqli mcrypt gd exif intl xsl json soap dom zip opcache && \
     docker-php-ext-install iconv pdo_mysql pdo_sqlite mysqli gd exif intl xsl json soap dom zip opcache && \
+    docker-php-ext-install fileinfo ctype bcmath opcache posix simplexml tokenizer && \
+    #php7.2부터 mcrypt 제거되어, pecl로 설치해야함
+    pecl install mcrypt-1.0.1 && \
+    pecl install redis && \
+    pecl install lzf && \
+    ### phalcon extension start ###
+    cd /tmp && \
+    git clone --branch v${PHALCON_VERSION} https://github.com/phalcon/cphalcon && \
+    cd cphalcon/build/ && ./install && \
+    echo "extension=phalcon.so" > ${PHP_CONF_DIR}/docker-php-ext-phalcon.ini && \
+    ### phalcon extension end ###
     pecl install xdebug-2.6.0 && \
     docker-php-source delete && \
     mkdir -p /etc/nginx && \
@@ -211,9 +268,11 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     pip install -U pip && \
     pip install -U certbot && \
     mkdir -p /etc/letsencrypt/webrootauth && \
-    apk del gcc musl-dev linux-headers libffi-dev augeas-dev python-dev make autoconf
+    apk del gcc musl-dev linux-headers libffi-dev augeas-dev python-dev make autoconf && \
+	rm -rf /tmp/*
 #    apk del .sys-deps
 #    ln -s /usr/bin/php7 /usr/bin/php
+
 
 ADD conf/supervisord.conf /etc/supervisord.conf
 
@@ -267,7 +326,6 @@ RUN chmod 755 /usr/bin/pull && chmod 755 /usr/bin/push && chmod 755 /usr/bin/let
 # copy in code
 ADD src/ /var/www/html/
 ADD errors/ /var/www/errors
-
 
 EXPOSE 443 80
 
