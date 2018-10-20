@@ -5,7 +5,7 @@ LABEL maintainer="Eric Hakim <cobays@gmail.com>"
 ENV TZ Asia/Seoul
 ENV ECHO_VERSION 0.61
 ENV NGX_CACHE_PURGE_VERSION 2.3
-ENV GEOIP_VERSION 1.6.11
+#ENV GEOIP_VERSION 1.6.12
 ENV PHALCON_VERSION 3.4.1
 ENV PHP_CONF_DIR /usr/local/etc/php/conf.d
 
@@ -118,26 +118,26 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     geoip-dev \
     perl-dev \
     luajit-dev \
-  && echo "==================================================" \
-  && echo "Installing geoip-api-c" \
-  && echo "==================================================" \
-  && wget https://github.com/maxmind/geoip-api-c/releases/download/v${GEOIP_VERSION}/GeoIP-${GEOIP_VERSION}.tar.gz \
-		-O /tmp/GeoIP.tar.gz \
-  && cd /tmp && tar -xvzf GeoIP.tar.gz && mv GeoIP-* GeoIP \
-  && cd GeoIP \
-  && ./configure --prefix=/usr \
-  && make -j$(getconf _NPROCESSORS_ONLN) \
-  && make check \
-  && make install \
-  && echo "==================================================" \
-  && echo "Downloading GeoIP database" \
-  && echo "==================================================" \
-  && mkdir -p /usr/share/GeoIP && cd /tmp \
-  && wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz \
-  && gunzip GeoIP.dat.gz \
-  && wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz \
-  && gunzip GeoLiteCity.dat.gz \
-  && mv GeoIP.dat GeoLiteCity.dat /usr/share/GeoIP/ \
+  #&& echo "==================================================" \
+  #&& echo "Installing geoip-api-c" \
+  #&& echo "==================================================" \
+  #&& wget https://github.com/maxmind/geoip-api-c/releases/download/v${GEOIP_VERSION}/GeoIP-${GEOIP_VERSION}.tar.gz \
+	#	-O /tmp/GeoIP.tar.gz \
+  #&& cd /tmp && tar -xvzf GeoIP.tar.gz && mv GeoIP-* GeoIP \
+  #&& cd GeoIP \
+  #&& ./configure --prefix=/usr \
+  #&& make -j$(getconf _NPROCESSORS_ONLN) \
+  #&& make check \
+  #&& make install \
+  #&& echo "==================================================" \
+  #&& echo "Downloading GeoIP database" \
+  #&& echo "==================================================" \
+  #&& mkdir -p /usr/share/GeoIP && cd /tmp \
+  #&& wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz \
+  #&& gunzip GeoIP.dat.gz \
+  #&& wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz \
+  #&& gunzip GeoLiteCity.dat.gz \
+  #&& mv GeoIP.dat GeoLiteCity.dat /usr/share/GeoIP/ \
   && curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
   && curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc  -o nginx.tar.gz.asc \
   && curl -fSL https://github.com/simpl/ngx_devel_kit/archive/v$DEVEL_KIT_MODULE_VERSION.tar.gz -o ndk.tar.gz \
