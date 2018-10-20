@@ -4,6 +4,7 @@ LABEL maintainer="Eric Hakim <cobays@gmail.com>"
 
 ENV TZ Asia/Seoul
 ENV ECHO_VERSION 0.61
+ENV NGX_CACHE_PURGE_VERSION 2.3
 ENV GEOIP_VERSION 1.6.11
 ENV PHALCON_VERSION 3.4.1
 ENV PHP_CONF_DIR /usr/local/etc/php/conf.d
@@ -37,27 +38,18 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && echo "Installing timezone (tzdata)" \
   && echo "==================================================" \
   && apk add --no-cache tzdata \
-  && echo "==================================================" \
-  && echo "Downloading echo-nginx-module" \
-  && echo "==================================================" \
-  && wget https://github.com/openresty/echo-nginx-module/archive/v${ECHO_VERSION}.tar.gz \
-    -O /tmp/echo-nginx-module.tar.gz \
-  && cd /tmp && tar -xvzf echo-nginx-module.tar.gz \
-  && mv echo-nginx-module-${ECHO_VERSION} echo-nginx-module \
-  && echo "==================================================" \
-  && echo "Downloading ngx_cache_purge" \
-  && echo "==================================================" \
-  && wget https://github.com/FRiCKLE/ngx_cache_purge/archive/2.3.tar.gz -O /tmp/ngx_cache_purge.tar.gz \
-  && cd /tmp && tar -xvzf ngx_cache_purge.tar.gz && mv ngx_cache_purge-* ngx_cache_purge \
-  && echo "==================================================" \
-  && echo "Downloading GeoIP database" \
-  && echo "==================================================" \
-  && mkdir /usr/share/GeoIP && cd /tmp \
-  && wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz \
-  && gunzip GeoIP.dat.gz \
-  && wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz \
-  && gunzip GeoLiteCity.dat.gz \
-  && mv GeoIP.dat GeoLiteCity.dat /usr/share/GeoIP/ \
+  #&& echo "==================================================" \
+  #&& echo "Downloading echo-nginx-module" \
+  #&& echo "==================================================" \
+  #&& wget https://github.com/openresty/echo-nginx-module/archive/v${ECHO_VERSION}.tar.gz \
+  #  -O /tmp/echo-nginx-module.tar.gz \
+  #&& cd /tmp && tar -xvzf echo-nginx-module.tar.gz \
+  #&& mv echo-nginx-module-${ECHO_VERSION} echo-nginx-module \
+  #&& echo "==================================================" \
+  #&& echo "Downloading ngx_cache_purge" \
+  #&& echo "==================================================" \
+  #&& wget https://github.com/FRiCKLE/ngx_cache_purge/archive/2.3.tar.gz -O /tmp/ngx_cache_purge.tar.gz \
+  #&& cd /tmp && tar -xvzf ngx_cache_purge.tar.gz && mv ngx_cache_purge-* ngx_cache_purge \
   && CONFIG="\
     --prefix=/etc/nginx \
     --sbin-path=/usr/sbin/nginx \
@@ -105,8 +97,8 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     --with-http_v2_module \
     --add-module=/usr/src/ngx_devel_kit-$DEVEL_KIT_MODULE_VERSION \
     --add-module=/usr/src/lua-nginx-module-$LUA_MODULE_VERSION \
-	--add-module=/tmp/echo-nginx-module \
-	--add-module=/tmp/ngx_cache_purge \
+	--add-module=/usr/src/echo-nginx-module-$ECHO_VERSION \
+	--add-module=/usr/src/ngx_cache_purge-$NGX_CACHE_PURGE_VERSION \
   " \
   && addgroup -S nginx \
   && adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
@@ -126,10 +118,32 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     geoip-dev \
     perl-dev \
     luajit-dev \
+  && echo "==================================================" \
+  && echo "Installing geoip-api-c" \
+  && echo "==================================================" \
+  && wget https://github.com/maxmind/geoip-api-c/releases/download/v${GEOIP_VERSION}/GeoIP-${GEOIP_VERSION}.tar.gz \
+		-O /tmp/GeoIP.tar.gz \
+  && cd /tmp && tar -xvzf GeoIP.tar.gz && mv GeoIP-* GeoIP \
+  && cd GeoIP \
+  && ./configure --prefix=/usr \
+  && make -j$(getconf _NPROCESSORS_ONLN) \
+  && make check \
+  && make install \
+  && echo "==================================================" \
+  && echo "Downloading GeoIP database" \
+  && echo "==================================================" \
+  && mkdir -p /usr/share/GeoIP && cd /tmp \
+  && wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz \
+  && gunzip GeoIP.dat.gz \
+  && wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz \
+  && gunzip GeoLiteCity.dat.gz \
+  && mv GeoIP.dat GeoLiteCity.dat /usr/share/GeoIP/ \
   && curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
   && curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc  -o nginx.tar.gz.asc \
   && curl -fSL https://github.com/simpl/ngx_devel_kit/archive/v$DEVEL_KIT_MODULE_VERSION.tar.gz -o ndk.tar.gz \
   && curl -fSL https://github.com/openresty/lua-nginx-module/archive/v$LUA_MODULE_VERSION.tar.gz -o lua.tar.gz \
+  && curl -fSL https://github.com/openresty/echo-nginx-module/archive/v$ECHO_VERSION.tar.gz -o echo.tar.gz \
+  && curl -fSL https://github.com/FRiCKLE/ngx_cache_purge/archive/$NGX_CACHE_PURGE_VERSION.tar.gz -o cache-purge.tar.gz \
   && export GNUPGHOME="$(mktemp -d)" \
   && found=''; \
   for server in \
@@ -148,7 +162,9 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && tar -zxC /usr/src -f nginx.tar.gz \
   && tar -zxC /usr/src -f ndk.tar.gz \
   && tar -zxC /usr/src -f lua.tar.gz \
-  && rm nginx.tar.gz ndk.tar.gz lua.tar.gz \
+  && tar -zxC /usr/src -f echo.tar.gz \
+  && tar -zxC /usr/src -f cache-purge.tar.gz \
+  && rm nginx.tar.gz ndk.tar.gz lua.tar.gz echo.tar.gz cache-purge.tar.gz \
   && cd /usr/src/nginx-$NGINX_VERSION \
   && ./configure $CONFIG --with-debug \
   && make -j$(getconf _NPROCESSORS_ONLN) \
