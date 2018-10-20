@@ -39,14 +39,14 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && echo "==================================================" \
   && apk add --no-cache tzdata \
   #&& echo "==================================================" \
-  #&& echo "Downloading echo-nginx-module" \
+  #&& echo "Downloading echo-nginx-module : 밑에서 컴파일시 통합처리" \
   #&& echo "==================================================" \
   #&& wget https://github.com/openresty/echo-nginx-module/archive/v${ECHO_VERSION}.tar.gz \
   #  -O /tmp/echo-nginx-module.tar.gz \
   #&& cd /tmp && tar -xvzf echo-nginx-module.tar.gz \
   #&& mv echo-nginx-module-${ECHO_VERSION} echo-nginx-module \
   #&& echo "==================================================" \
-  #&& echo "Downloading ngx_cache_purge" \
+  #&& echo "Downloading ngx_cache_purge : 밑에서 컴파일시 통합처리" \
   #&& echo "==================================================" \
   #&& wget https://github.com/FRiCKLE/ngx_cache_purge/archive/2.3.tar.gz -O /tmp/ngx_cache_purge.tar.gz \
   #&& cd /tmp && tar -xvzf ngx_cache_purge.tar.gz && mv ngx_cache_purge-* ngx_cache_purge \
@@ -118,9 +118,9 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     geoip-dev \
     perl-dev \
     luajit-dev \
-  #&& echo "==================================================" \
-  #&& echo "Installing geoip-api-c" \
-  #&& echo "==================================================" \
+  #&& echo "====================================================================" \
+  #&& echo "Installing geoip-api-c : 이미 apk add geoip-dev로 설치되어있어서 스킵함." \
+  #&& echo "====================================================================" \
   #&& wget https://github.com/maxmind/geoip-api-c/releases/download/v${GEOIP_VERSION}/GeoIP-${GEOIP_VERSION}.tar.gz \
 	#	-O /tmp/GeoIP.tar.gz \
   #&& cd /tmp && tar -xvzf GeoIP.tar.gz && mv GeoIP-* GeoIP \
