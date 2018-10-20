@@ -27,8 +27,6 @@ ENV LUAJIT_INC=/usr/include/luajit-2.1
 # wget ssl지원: https://asciinema.org/a/101395
 # CONFiG에 지정할 디렉토리 경로명: /tmp/nginx_accept_language_module-master
 # echo-nginx-module-0.61
-RUN set -x \
-
 
 # resolves #166
 ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
